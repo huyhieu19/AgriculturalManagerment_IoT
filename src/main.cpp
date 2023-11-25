@@ -4,8 +4,6 @@
 DHT dht1(GATE1, DHT11);
 DHT dht2(GATE2, DHT11);
 
-WiFiClient espClient;
-PubSubClient client(espClient);
 
 void setup()
 {
@@ -15,7 +13,7 @@ void setup()
   ConnectWIFI();
 
   // Thiết lập kết nối MQTT
-  ConnectMQTT(client);
+  ConnectMQTT();
   pinMode(GATE1, INPUT);
   pinMode(GATE2, INPUT);
   // pinMode(GATE5, INPUT);
@@ -34,15 +32,10 @@ void setup()
 void loop()
 {
   // kết nối broker
-  if (!client.connected())
-  {
-    reconnect(client);
-    // ConnectMQTT(client, MQTTSV, MQTTPORT);
-  }
-  client.loop();
+  MQTTLoop();
   // gửi tín hiệu
   // readControl(client, GATE6, GATE7);
-  readDHT11(client, dht1, GATE1, dht2, GATE2);
+  readDHT11(dht1, GATE1, dht2, GATE2);
 
   delay(5000);
 }

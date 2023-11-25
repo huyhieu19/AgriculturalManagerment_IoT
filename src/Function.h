@@ -31,19 +31,20 @@ const u_int8_t GATE7 = D7;
 
 // All connection
 void ConnectWIFI();
-void ConnectMQTT(PubSubClient client);
-void reconnect(PubSubClient client);
+void ConnectMQTT();
+void reconnect();
 
 // Extention
 void splitTopic(String topic, String *topicArray, int arraySize);
 void callback(char *topic, byte *payload, unsigned int length);
 
-void readControl(PubSubClient client, uint8_t GateD6, uint8_t GateD7);
-void readDHT11(PubSubClient client, DHT dht1, uint8_t GateDHT1, DHT dht2, uint8_t GateDHT2);
+void readControl( uint8_t GateD6, uint8_t GateD7);
+void readDHT11( DHT dht1, uint8_t GateDHT1, DHT dht2, uint8_t GateDHT2);
 void StartDHT(DHT dht1, DHT dht2);
 
 // Write data to flash memory
 void WriteEEPROM(char *topic, byte *payload, unsigned int length);
 void ReadEEPROM(char *topic);
-
+void MQTTLoop();
+PubSubClient returnClient();
 #endif

@@ -41,7 +41,8 @@ const char *TopicThresholdW = (std::string(SYSURL) + "/threshold/" + std::string
 const char *TopicThresholdR = (std::string(SYSURL) + "/threshold/" + std::string(TypeR)).c_str();
 
 const char *onDevice = "1";
-
+WiFiClient wifiClient;
+PubSubClient client(wifiClient);
 // khơi tạo client và wifi
 void ConnectWIFI()
 {
@@ -54,7 +55,7 @@ void ConnectWIFI()
     }
     Serial.println("Connected to WiFi");
 }
-void ConnectMQTT(PubSubClient client)
+void ConnectMQTT()
 {
     // Thiết lập kết nối MQTT
     client.setServer(MQTTSV, MQTTPORT);
@@ -82,7 +83,7 @@ void ConnectMQTT(PubSubClient client)
     }
 }
 
-void reconnect(PubSubClient client)
+void reconnect()
 {
     while (!client.connected())
     {
@@ -104,7 +105,7 @@ void reconnect(PubSubClient client)
     }
 }
 
-void readControl(PubSubClient client, uint8_t GateD6, uint8_t GateD7)
+void readControl( uint8_t GateD6, uint8_t GateD7)
 {
     // Đọc trạng thái của các GPIO
     Serial.println("D6:" + digitalRead(GateD6));
@@ -115,7 +116,7 @@ void readControl(PubSubClient client, uint8_t GateD6, uint8_t GateD7)
     client.publish(topicD7, String(digitalRead(GateD7)).c_str());
 }
 
-void readDHT11(PubSubClient client, DHT dht1, uint8_t GateDHT1, DHT dht2, uint8_t GateDHT2)
+void readDHT11( DHT dht1, uint8_t GateDHT1, DHT dht2, uint8_t GateDHT2)
 {
     int pin1State = digitalRead(GateDHT1);
     int pin2State = digitalRead(GateDHT2);
@@ -248,4 +249,15 @@ void WriteEEPROM(char *topic, byte *payload, unsigned int length)
 }
 void ReadEEPROM(char *topic)
 {
+}
+void MQTTLoop() {
+if (!client.connected())
+  {
+    reconnect();
+    // ConnectMQTT(client, MQTTSV, MQTTPORT);
+  }
+  client.loop();
+}
+PubSubClient returnClient() {
+    return client;
 }
