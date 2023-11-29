@@ -20,18 +20,17 @@ const char *mqttPassword = "your_MQTT_password";
 // Thông tin Topic
 // --- Topic: SystemUrl/idgate/type/name
 const char *systemUrl = "3c531531-d5f5-4fe3-9954-5afd76ff2151";
-const char *moduleUrl = "3c531531-d5f5-4fe3-9954-5afd76ff2151";
-const char *idD1 = "ff824d3a-2548-4f16-b111-d102d3a3cdb4";
+const char *moduleUrl = "97429D21-59E0-43AB-20E9-08DBEB8AB6A6";
+const char *idD1 = "FF824D3A-2548-4F16-B111-D102D3A3CDB4";
 const char *idD2 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
 const char *idD5 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
 const char *idD6 = "5DF0F490-73B9-4757-8A01-789874D0F810";
-const char *idD7 = "5DF0F490-73B9-4757-8A01-789874D0F811";
+const char *idD7 = "111DA99B-9B4B-4DB3-AB1D-C60C27F075C8";
 const char *Async = "async";
 
 // GPIO define gate name
 const uint8_t gateControl1 = D6;
 const uint8_t gateControl2 = D7;
-
 const uint8_t gateMeasure1 = D1;
 const uint8_t gateMeasure2 = D2;
 const uint8_t gateMeasure3 = D3;
@@ -42,19 +41,10 @@ struct ThresholdValues
   float thresholdOpen = 0;
   float thresholdClose = 0;
 };
-struct MenoryControl
-{
-  int valueD6 = 0;
-  int valueD7 = 0;
-  int valueD8 = 0;
-};
 
-const int NumThresholds = 5; // Số lượng giá trị ngưỡng
+const int NumThresholds = 3; // Số lượng giá trị ngưỡng
 const int EEPROMAddress = 0;
 ThresholdValues thresholds[NumThresholds];
-
-const int EEPROMAddressControl = EEPROMAddress + sizeof(thresholds) + 1;
-MenoryControl memoryControl;
 
 // Initialize DHT to measure temperature and humidity
 DHT dht1(gateMeasure1, DHT11);
@@ -65,29 +55,6 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 /*---------Begin Working with EEPROM---------------*/
-
-// void writeToEEPROM()
-// {
-//   EEPROM.begin(sizeof(thresholds));
-//   EEPROM.put(EEPROMAddressD1Start, thresholds);
-//   EEPROM.commit();
-//   EEPROM.end();
-// }
-
-void readMemoryControlFromEEPROM()
-{
-  EEPROM.begin(sizeof(memoryControl));
-  EEPROM.get(EEPROMAddressControl, memoryControl);
-  EEPROM.end();
-}
-
-void updateMemoryControl(MenoryControl memoryControl)
-{
-  EEPROM.begin(sizeof(memoryControl));
-  EEPROM.put(EEPROMAddressControl, memoryControl);
-  EEPROM.commit();
-  EEPROM.end();
-}
 
 void readFromEEPROM()
 {
@@ -110,20 +77,6 @@ void updateThresholds(int index, float thresholdOpen, float thresholdClose)
   }
 }
 
-void addThreshold(float thresholdOpen, float thresholdClose)
-{
-  for (int i = 0; i < NumThresholds; i++)
-  {
-    if (thresholds[i].thresholdOpen == 0 && thresholds[i].thresholdClose == 0)
-    {
-      updateThresholds(i, thresholdOpen, thresholdClose);
-      return;
-    }
-  }
-
-  Serial.println("Cannot add more thresholds. Array is full.");
-}
-
 void removeThreshold(int index)
 {
   if (index >= 0 && index < NumThresholds)
@@ -137,6 +90,7 @@ void removeThreshold(int index)
     EEPROM.end();
   }
 }
+
 /*---------End Working with EEPROM---------------*/
 
 // The function tries to reconnect MQTT when the connection is lost
@@ -174,7 +128,7 @@ void readControl()
   Serial.print("GPIO 7 :");
   Serial.println(gateControl2Status);
   String payloadControl1 = String(gateControl1Status);
-  String payloadControl2 = String(gateControl1Status);
+  String payloadControl2 = String(gateControl2Status);
   std::string topicControl1 = std::string(systemUrl) + "/" + std::string(idD6) + "/W" + "/res";
   std::string topicControl2 = std::string(systemUrl) + "/" + std::string(idD7) + "/W" + "/res";
 
@@ -186,7 +140,6 @@ void readControl()
 // reading status gates measure
 void readDHT11()
 {
-
   float h1 = dht1.readHumidity();
   float t1 = dht1.readTemperature();
 
@@ -201,17 +154,61 @@ void readDHT11()
   Serial.println(temperaturePayload);
   Serial.print("Published humidity: ");
   Serial.println(humidityPayload);
-  for (int i = 0; i < NumThresholds; i++)
+
+  if (thresholds[0].thresholdOpen > thresholds[0].thresholdClose)
   {
-    if (t1 > thresholds[i].thresholdOpen)
+    if (t1 > thresholds[0].thresholdOpen)
     {
       client.publish((topic + "/auto/ND/open").c_str(), temperaturePayload.c_str());
+      Serial.print("Nhiet do -> open");
     }
-    if (t1 < thresholds[i].thresholdClose)
+    else if (t1 < thresholds[0].thresholdClose)
     {
       client.publish((topic + "/auto/ND/close").c_str(), temperaturePayload.c_str());
+      Serial.print("Nhiet do -> close");
     }
   }
+  else
+  {
+    if (t1 < thresholds[0].thresholdOpen)
+    {
+      client.publish((topic + "/auto/DA/open").c_str(), temperaturePayload.c_str());
+      Serial.print("Nhiet do -> open");
+    }
+    else if (t1 > thresholds[0].thresholdClose)
+    {
+      client.publish((topic + "/auto/DA/close").c_str(), temperaturePayload.c_str());
+      Serial.print("Nhiet do -> close");
+    }
+  }
+
+  if (thresholds[1].thresholdOpen > thresholds[1].thresholdClose)
+  {
+    if (h1 > thresholds[1].thresholdOpen)
+    {
+      client.publish((topic + "/auto/ND/open").c_str(), temperaturePayload.c_str());
+      Serial.print("Do am -> open");
+    }
+    else if (h1 < thresholds[1].thresholdClose)
+    {
+      client.publish((topic + "/auto/ND/close").c_str(), temperaturePayload.c_str());
+      Serial.print("Do am -> close");
+    }
+  }
+  else
+  {
+    if (h1 < thresholds[1].thresholdOpen)
+    {
+      client.publish((topic + "/auto/DA/open").c_str(), temperaturePayload.c_str());
+      Serial.print("Do am -> open");
+    }
+    else if (h1 > thresholds[1].thresholdClose)
+    {
+      client.publish((topic + "/auto/DA/close").c_str(), temperaturePayload.c_str());
+      Serial.print("Do am -> close");
+    }
+  }
+
   // float h2 = dht2.readHumidity();
   // float t2 = dht2.readTemperature();
 
@@ -248,6 +245,11 @@ void splitTopic(String topic, String *topicArray, int arraySize)
   }
 }
 
+void ControlDevice(uint8_t gateControl, int mode)
+{
+  digitalWrite(gateControl, mode);
+}
+
 /*This function is used to control the state of pinmodes
 when receiving control from the topic and control payload*/
 void controlDeviceByTopic(String topicString, String payload)
@@ -257,15 +259,13 @@ void controlDeviceByTopic(String topicString, String payload)
   {
     if (payload == "1")
     {
-      digitalWrite(gateControl1, HIGH);
-      memoryControl.valueD6 = 1;
-      updateMemoryControl(memoryControl);
+      ControlDevice(gateControl1, HIGH);
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/5DF0F490-73B9-4757-8A01-789874D0F810/control", "c");
     }
     else if (payload == "0")
     {
-      digitalWrite(gateControl1, LOW);
-      memoryControl.valueD6 = 0;
-      updateMemoryControl(memoryControl);
+      ControlDevice(gateControl1, LOW);
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/5DF0F490-73B9-4757-8A01-789874D0F810/control", "c");
     }
   }
   if (topicString == String(idD7))
@@ -273,14 +273,12 @@ void controlDeviceByTopic(String topicString, String payload)
     if (payload == "1")
     {
       digitalWrite(gateControl2, HIGH);
-      memoryControl.valueD7 = 1;
-      updateMemoryControl(memoryControl);
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/111DA99B-9B4B-4DB3-AB1D-C60C27F075C8/control", "c");
     }
     else if (payload == "0")
     {
-      digitalWrite(gateControl2, LOW);
-      memoryControl.valueD7 = 0;
-      updateMemoryControl(memoryControl);
+      ControlDevice(gateControl2, LOW);
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/111DA99B-9B4B-4DB3-AB1D-C60C27F075C8/control", "c");
     }
   }
 }
@@ -326,7 +324,6 @@ void setup()
 
   // Reading EEPROM
   readFromEEPROM();
-  readMemoryControlFromEEPROM();
 
   // Thiết lập kết nối Wi-Fi
   WiFi.begin(ssid, password);
@@ -364,14 +361,13 @@ void setup()
 
   pinMode(gateControl1, OUTPUT);
   pinMode(gateControl2, OUTPUT);
-
   pinMode(gateMeasure1, INPUT);
   pinMode(gateMeasure2, INPUT);
   pinMode(gateMeasure3, INPUT);
   pinMode(gateMeasure4, INPUT);
 
-  digitalWrite(gateControl1, memoryControl.valueD6 == 1 ? HIGH : LOW);
-  digitalWrite(gateControl2, memoryControl.valueD7 == 1 ? HIGH : LOW);
+  digitalWrite(gateControl1, LOW);
+  digitalWrite(gateControl2, LOW);
 
   dht1.begin();
   dht2.begin();
@@ -399,9 +395,6 @@ void loop()
     readControl();
     readDHT11();
     Serial.println(String(thresholds[0].thresholdClose) + "/" + String(thresholds[0].thresholdOpen));
-    Serial.println(memoryControl.valueD6);
-    Serial.println(memoryControl.valueD7);
-    Serial.println(memoryControl.valueD8);
     // delay(7000);
     //  Cập nhật thời điểm thực hiện vòng lặp 1
     lastLoop1Time = millis();
