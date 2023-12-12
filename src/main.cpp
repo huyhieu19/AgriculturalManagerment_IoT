@@ -20,12 +20,12 @@ const char *mqttPassword = "your_MQTT_password";
 // Thông tin Topic
 // --- Topic: SystemUrl/idgate/type/name
 const char *systemUrl = "3c531531-d5f5-4fe3-9954-5afd76ff2151";
-const char *moduleUrl = "97429D21-59E0-43AB-20E9-08DBEB8AB6A6";
+const char *moduleUrl = "66DB8F87-1A1E-4701-F2EE-08DBF79AE6C9";
 const char *idD1 = "FF824D3A-2548-4F16-B111-D102D3A3CDB4";
 const char *idD2 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
 const char *idD5 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
-const char *idD6 = "5DF0F490-73B9-4757-8A01-789874D0F810";
-const char *idD7 = "111DA99B-9B4B-4DB3-AB1D-C60C27F075C8";
+const char *idD6 = "15432DD2-0A91-405F-A942-C9D82C908867";
+const char *idD7 = "55E05E4F-575C-4656-8099-50ABCFEE7DE8";
 const char *Async = "async";
 
 // GPIO define gate name
@@ -260,12 +260,12 @@ void controlDeviceByTopic(String topicString, String payload)
     if (payload == "1")
     {
       ControlDevice(gateControl1, HIGH);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/5DF0F490-73B9-4757-8A01-789874D0F810/control", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/15432DD2-0A91-405F-A942-C9D82C908867/control", "c");
     }
     else if (payload == "0")
     {
       ControlDevice(gateControl1, LOW);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/5DF0F490-73B9-4757-8A01-789874D0F810/control", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/15432DD2-0A91-405F-A942-C9D82C908867/control", "c");
     }
   }
   if (topicString == String(idD7))
@@ -273,12 +273,12 @@ void controlDeviceByTopic(String topicString, String payload)
     if (payload == "1")
     {
       digitalWrite(gateControl2, HIGH);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/111DA99B-9B4B-4DB3-AB1D-C60C27F075C8/control", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/55E05E4F-575C-4656-8099-50ABCFEE7DE8/control", "c");
     }
     else if (payload == "0")
     {
       ControlDevice(gateControl2, LOW);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/111DA99B-9B4B-4DB3-AB1D-C60C27F075C8/control", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/55E05E4F-575C-4656-8099-50ABCFEE7DE8/control", "c");
     }
   }
 }
