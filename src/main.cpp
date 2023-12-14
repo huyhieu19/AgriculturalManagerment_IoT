@@ -21,16 +21,19 @@ const char *mqttPassword = "your_MQTT_password";
 // --- Topic: SystemUrl/idgate/type/name
 const char *systemUrl = "3c531531-d5f5-4fe3-9954-5afd76ff2151";
 const char *moduleUrl = "66DB8F87-1A1E-4701-F2EE-08DBF79AE6C9";
-const char *idD1 = "FF824D3A-2548-4F16-B111-D102D3A3CDB4";
+const char *idD1 = "664CB71A-D3F6-4FBF-95DD-490CF746108B";
 const char *idD2 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
 const char *idD5 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
-const char *idD6 = "15432DD2-0A91-405F-A942-C9D82C908867";
+const char *idD6 = "5DF0F490-73B9-4757-8A01-789874D0F810";
 const char *idD7 = "55E05E4F-575C-4656-8099-50ABCFEE7DE8";
+const char *idD8 = "A529949C-252D-42A7-B7EA-4359DFC492B3";
 const char *Async = "async";
 
 // GPIO define gate name
 const uint8_t gateControl1 = D6;
 const uint8_t gateControl2 = D7;
+const uint8_t gateControl3 = D8;
+
 const uint8_t gateMeasure1 = D1;
 const uint8_t gateMeasure2 = D2;
 const uint8_t gateMeasure3 = D3;
@@ -129,8 +132,8 @@ void readControl()
   Serial.println(gateControl2Status);
   String payloadControl1 = String(gateControl1Status);
   String payloadControl2 = String(gateControl2Status);
-  std::string topicControl1 = std::string(systemUrl) + "/" + std::string(idD6) + "/W" + "/res";
-  std::string topicControl2 = std::string(systemUrl) + "/" + std::string(idD7) + "/W" + "/res";
+  std::string topicControl1 = std::string(systemUrl) + "/w/" + std::string(idD6) + "/res";
+  std::string topicControl2 = std::string(systemUrl) + "/w/" + std::string(idD7) + "/res";
 
   // Send to broker
   client.publish(topicControl1.c_str(), payloadControl1.c_str());
@@ -143,28 +146,26 @@ void readDHT11()
   float h1 = dht1.readHumidity();
   float t1 = dht1.readTemperature();
 
-  String temperaturePayload = String(t1);
-  String humidityPayload = String(h1);
+  String tempHumi = String(t1) + "/" + String(h1);
 
-  std::string topic = std::string(systemUrl) + "/" + std::string(idD1);
-  client.publish((topic + "/R" + "/ND").c_str(), temperaturePayload.c_str());
-  client.publish((topic + "/R" + "/DA").c_str(), humidityPayload.c_str());
+  std::string topic = std::string(systemUrl) + "/r/" + std::string(idD1);
+  client.publish((topic + "/ND_DA").c_str(), tempHumi.c_str());
 
   Serial.print("Published temperature: ");
-  Serial.println(temperaturePayload);
+  Serial.println(String(t1));
   Serial.print("Published humidity: ");
-  Serial.println(humidityPayload);
+  Serial.println(String(h1));
 
   if (thresholds[0].thresholdOpen > thresholds[0].thresholdClose)
   {
     if (t1 > thresholds[0].thresholdOpen)
     {
-      client.publish((topic + "/auto/ND/open").c_str(), temperaturePayload.c_str());
+      client.publish((topic + "/auto/ND/open").c_str(), String(t1).c_str());
       Serial.print("Nhiet do -> open");
     }
     else if (t1 < thresholds[0].thresholdClose)
     {
-      client.publish((topic + "/auto/ND/close").c_str(), temperaturePayload.c_str());
+      client.publish((topic + "/auto/ND/close").c_str(), String(t1).c_str());
       Serial.print("Nhiet do -> close");
     }
   }
@@ -172,12 +173,12 @@ void readDHT11()
   {
     if (t1 < thresholds[0].thresholdOpen)
     {
-      client.publish((topic + "/auto/DA/open").c_str(), temperaturePayload.c_str());
+      client.publish((topic + "/auto/DA/open").c_str(), String(t1).c_str());
       Serial.print("Nhiet do -> open");
     }
     else if (t1 > thresholds[0].thresholdClose)
     {
-      client.publish((topic + "/auto/DA/close").c_str(), temperaturePayload.c_str());
+      client.publish((topic + "/auto/DA/close").c_str(), String(t1).c_str());
       Serial.print("Nhiet do -> close");
     }
   }
@@ -186,12 +187,12 @@ void readDHT11()
   {
     if (h1 > thresholds[1].thresholdOpen)
     {
-      client.publish((topic + "/auto/ND/open").c_str(), temperaturePayload.c_str());
+      client.publish((topic + "/auto/ND/open").c_str(), String(h1).c_str());
       Serial.print("Do am -> open");
     }
     else if (h1 < thresholds[1].thresholdClose)
     {
-      client.publish((topic + "/auto/ND/close").c_str(), temperaturePayload.c_str());
+      client.publish((topic + "/auto/ND/close").c_str(), String(h1).c_str());
       Serial.print("Do am -> close");
     }
   }
@@ -199,30 +200,15 @@ void readDHT11()
   {
     if (h1 < thresholds[1].thresholdOpen)
     {
-      client.publish((topic + "/auto/DA/open").c_str(), temperaturePayload.c_str());
+      client.publish((topic + "/auto/DA/open").c_str(), String(h1).c_str());
       Serial.print("Do am -> open");
     }
     else if (h1 > thresholds[1].thresholdClose)
     {
-      client.publish((topic + "/auto/DA/close").c_str(), temperaturePayload.c_str());
+      client.publish((topic + "/auto/DA/close").c_str(), String(h1).c_str());
       Serial.print("Do am -> close");
     }
   }
-
-  // float h2 = dht2.readHumidity();
-  // float t2 = dht2.readTemperature();
-
-  // temperaturePayload = String(t2);
-  // humidityPayload = String(h2);
-
-  // topic = std::string(systemUrl) + "/" + std::string(idD2);
-  // client.publish((topic + "/R" + "/ND").c_str(), temperaturePayload.c_str());
-  // client.publish((topic + "/R" + "/DA").c_str(), humidityPayload.c_str());
-
-  // Serial.print("Published temperature: ");
-  // Serial.println(temperaturePayload);
-  // Serial.print("Published humidity: ");
-  // Serial.println(humidityPayload);
 }
 
 void splitTopic(String topic, String *topicArray, int arraySize)
@@ -254,18 +240,17 @@ void ControlDevice(uint8_t gateControl, int mode)
 when receiving control from the topic and control payload*/
 void controlDeviceByTopic(String topicString, String payload)
 {
-
   if (topicString == String(idD6))
   {
     if (payload == "1")
     {
       ControlDevice(gateControl1, HIGH);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/15432DD2-0A91-405F-A942-C9D82C908867/control", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/5DF0F490-73B9-4757-8A01-789874D0F810/c", "c");
     }
     else if (payload == "0")
     {
       ControlDevice(gateControl1, LOW);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/15432DD2-0A91-405F-A942-C9D82C908867/control", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/5DF0F490-73B9-4757-8A01-789874D0F810/c", "c");
     }
   }
   if (topicString == String(idD7))
@@ -273,12 +258,25 @@ void controlDeviceByTopic(String topicString, String payload)
     if (payload == "1")
     {
       digitalWrite(gateControl2, HIGH);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/55E05E4F-575C-4656-8099-50ABCFEE7DE8/control", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/55E05E4F-575C-4656-8099-50ABCFEE7DE8/c", "c");
     }
     else if (payload == "0")
     {
       ControlDevice(gateControl2, LOW);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/55E05E4F-575C-4656-8099-50ABCFEE7DE8/control", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/55E05E4F-575C-4656-8099-50ABCFEE7DE8/c", "c");
+    }
+  }
+  if (topicString == String(idD8))
+  {
+    if (payload == "1")
+    {
+      digitalWrite(gateControl3, HIGH);
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A529949C-252D-42A7-B7EA-4359DFC492B3/c", "c");
+    }
+    else if (payload == "0")
+    {
+      ControlDevice(gateControl3, LOW);
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A529949C-252D-42A7-B7EA-4359DFC492B3/c", "c");
     }
   }
 }
@@ -304,7 +302,10 @@ void callback(char *topic, byte *payload, unsigned int length)
   splitTopic(topicString, topicArray, MAX_TOPICS);
 
   // từ topic và lệnh thực hiện bật/tắt
-  controlDeviceByTopic(topicArray[2], payloadString);
+  if (topicArray[2] == "w")
+  {
+    controlDeviceByTopic(topicArray[3], payloadString);
+  }
 
   // tách payload
   String payloadArray[MAX_TOPICS];
@@ -361,6 +362,7 @@ void setup()
 
   pinMode(gateControl1, OUTPUT);
   pinMode(gateControl2, OUTPUT);
+  pinMode(gateControl3, OUTPUT);
   pinMode(gateMeasure1, INPUT);
   pinMode(gateMeasure2, INPUT);
   pinMode(gateMeasure3, INPUT);
@@ -411,7 +413,4 @@ void loop()
     // Cập nhật thời điểm thực hiện vòng lặp 2
     lastLoop2Time = millis();
   }
-
-  // Các hành động khác trong vòng lặp chính
-  // ...
 }
