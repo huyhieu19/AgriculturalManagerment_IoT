@@ -6,6 +6,7 @@
 #include "DHT.h"
 #include <Wire.h>
 #include <EEPROM.h>
+#include <ArduinoJson.h>
 
 // Wi-Fi information
 const char *ssid = "FPT Telecom.2.4G";
@@ -143,14 +144,18 @@ void readControl()
 // reading status gates measure
 void readDHT11()
 {
+  // Kích thước bộ nhớ được cấp phát cho đối tượng JSON (tùy thuộc vào dự án của bạn)
+  const size_t capacity = JSON_OBJECT_SIZE(4);
+  DynamicJsonDocument ND_DA_D1(capacity);
+
   float h1 = dht1.readHumidity();
   float t1 = dht1.readTemperature();
-
-  String tempHumi = String(t1) + "/" + String(h1);
-
+  ND_DA_D1["ND"] = String(t1);
+  ND_DA_D1["DA"] = String(h1);
+  String jsonString;
+  serializeJson(ND_DA_D1, jsonString);
   std::string topic = std::string(systemUrl) + "/r/" + std::string(idD1);
-  client.publish((topic + "/ND_DA").c_str(), tempHumi.c_str());
-
+  client.publish((topic + "/ND_DA").c_str(), jsonString.c_str());
   Serial.print("Published temperature: ");
   Serial.println(String(t1));
   Serial.print("Published humidity: ");
