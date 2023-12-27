@@ -40,16 +40,8 @@ const uint8_t gateMeasure2 = D2;
 const uint8_t gateMeasure3 = D3;
 const uint8_t gateMeasure4 = D4;
 
-struct ThresholdValues
-{
-  float thresholdOpen = 0;
-  float thresholdClose = 0;
-};
-
-const int NumThresholds = 3; // Số lượng giá trị ngưỡng
-const int EEPROMAddress = 0;
-ThresholdValues thresholds[NumThresholds];
-
+static int T1 = 0;
+static int H1 = 0;
 // Initialize DHT to measure temperature and humidity
 DHT dht1(gateMeasure1, DHT11);
 DHT dht2(gateMeasure2, DHT11);
@@ -59,41 +51,6 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 /*---------Begin Working with EEPROM---------------*/
-
-void readFromEEPROM()
-{
-  EEPROM.begin(sizeof(thresholds));
-  EEPROM.get(EEPROMAddress, thresholds);
-  EEPROM.end();
-}
-
-void updateThresholds(int index, float thresholdOpen, float thresholdClose)
-{
-  if (index >= 0 && index < NumThresholds)
-  {
-    thresholds[index].thresholdOpen = thresholdOpen;
-    thresholds[index].thresholdClose = thresholdClose;
-
-    EEPROM.begin(sizeof(thresholds));
-    EEPROM.put(EEPROMAddress, thresholds);
-    EEPROM.commit();
-    EEPROM.end();
-  }
-}
-
-void removeThreshold(int index)
-{
-  if (index >= 0 && index < NumThresholds)
-  {
-    thresholds[index].thresholdOpen = 0;
-    thresholds[index].thresholdClose = 0;
-
-    EEPROM.begin(sizeof(thresholds));
-    EEPROM.put(EEPROMAddress, thresholds);
-    EEPROM.commit();
-    EEPROM.end();
-  }
-}
 
 /*---------End Working with EEPROM---------------*/
 
@@ -144,76 +101,29 @@ void readControl()
 // reading status gates measure
 void readDHT11()
 {
-  // Kích thước bộ nhớ được cấp phát cho đối tượng JSON (tùy thuộc vào dự án của bạn)
-  const size_t capacity = JSON_OBJECT_SIZE(4);
-  DynamicJsonDocument ND_DA_D1(capacity);
 
-  float h1 = dht1.readHumidity();
-  float t1 = dht1.readTemperature();
-  ND_DA_D1["ND"] = String(t1);
-  ND_DA_D1["DA"] = String(h1);
-  String jsonString;
-  serializeJson(ND_DA_D1, jsonString);
-  std::string topic = std::string(systemUrl) + "/r/" + std::string(idD1);
-  client.publish((topic + "/ND_DA").c_str(), jsonString.c_str());
+  int h1 = round(dht1.readHumidity());
+  int t1 = round(dht1.readTemperature());
+  Serial.println(T1);
+  Serial.println(H1);
+  if (h1 != H1 || t1 != T1)
+  {
+    // Kích thước bộ nhớ được cấp phát cho đối tượng JSON (tùy thuộc vào dự án của bạn)
+    const size_t capacity = JSON_OBJECT_SIZE(4);
+    DynamicJsonDocument ND_DA_D1(capacity);
+    ND_DA_D1["ND"] = String(t1);
+    ND_DA_D1["DA"] = String(h1);
+    String jsonString;
+    serializeJson(ND_DA_D1, jsonString);
+    std::string topic = std::string(systemUrl) + "/r/" + std::string(idD1);
+    client.publish((topic + "/ND_DA").c_str(), jsonString.c_str());
+    H1 = h1;
+    T1 = t1;
+  }
   Serial.print("Published temperature: ");
   Serial.println(String(t1));
   Serial.print("Published humidity: ");
   Serial.println(String(h1));
-
-  if (thresholds[0].thresholdOpen > thresholds[0].thresholdClose)
-  {
-    if (t1 > thresholds[0].thresholdOpen)
-    {
-      client.publish((topic + "/auto/ND/open").c_str(), String(t1).c_str());
-      Serial.print("Nhiet do -> open");
-    }
-    else if (t1 < thresholds[0].thresholdClose)
-    {
-      client.publish((topic + "/auto/ND/close").c_str(), String(t1).c_str());
-      Serial.print("Nhiet do -> close");
-    }
-  }
-  else
-  {
-    if (t1 < thresholds[0].thresholdOpen)
-    {
-      client.publish((topic + "/auto/DA/open").c_str(), String(t1).c_str());
-      Serial.print("Nhiet do -> open");
-    }
-    else if (t1 > thresholds[0].thresholdClose)
-    {
-      client.publish((topic + "/auto/DA/close").c_str(), String(t1).c_str());
-      Serial.print("Nhiet do -> close");
-    }
-  }
-
-  if (thresholds[1].thresholdOpen > thresholds[1].thresholdClose)
-  {
-    if (h1 > thresholds[1].thresholdOpen)
-    {
-      client.publish((topic + "/auto/ND/open").c_str(), String(h1).c_str());
-      Serial.print("Do am -> open");
-    }
-    else if (h1 < thresholds[1].thresholdClose)
-    {
-      client.publish((topic + "/auto/ND/close").c_str(), String(h1).c_str());
-      Serial.print("Do am -> close");
-    }
-  }
-  else
-  {
-    if (h1 < thresholds[1].thresholdOpen)
-    {
-      client.publish((topic + "/auto/DA/open").c_str(), String(h1).c_str());
-      Serial.print("Do am -> open");
-    }
-    else if (h1 > thresholds[1].thresholdClose)
-    {
-      client.publish((topic + "/auto/DA/close").c_str(), String(h1).c_str());
-      Serial.print("Do am -> close");
-    }
-  }
 }
 
 void splitTopic(String topic, String *topicArray, int arraySize)
@@ -316,20 +226,17 @@ void callback(char *topic, byte *payload, unsigned int length)
   String payloadArray[MAX_TOPICS];
   splitTopic(payloadString, payloadArray, MAX_TOPICS);
 
-  // Topic: sys/module/idgate/type/
-  if (topicArray[3] == "write")
-  {
-    updateThresholds(std::stoi(payloadArray[0].c_str()), std::atof(payloadArray[1].c_str()), std::atof(payloadArray[2].c_str()));
-  }
+  // // Topic: sys/module/idgate/type/
+  // if (topicArray[3] == "write")
+  // {
+  //   updateThresholds(std::stoi(payloadArray[0].c_str()), std::atof(payloadArray[1].c_str()), std::atof(payloadArray[2].c_str()));
+  // }
 }
 
 // setup method - (main method)
 void setup()
 {
   Serial.begin(115200);
-
-  // Reading EEPROM
-  readFromEEPROM();
 
   // Thiết lập kết nối Wi-Fi
   WiFi.begin(ssid, password);
@@ -401,7 +308,6 @@ void loop()
     // gửi tín hiệu
     readControl();
     readDHT11();
-    Serial.println(String(thresholds[0].thresholdClose) + "/" + String(thresholds[0].thresholdOpen));
     // delay(7000);
     //  Cập nhật thời điểm thực hiện vòng lặp 1
     lastLoop1Time = millis();
