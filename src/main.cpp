@@ -25,13 +25,22 @@ const char *mqttPassword = "your_MQTT_password";
 // Thông tin Topic
 // --- Topic: SystemUrl/idgate/type/name
 const char *systemUrl = "3c531531-d5f5-4fe3-9954-5afd76ff2151";
-const char *moduleUrl = "66DB8F87-1A1E-4701-F2EE-08DBF79AE6C9";
-const char *idD1 = "664CB71A-D3F6-4FBF-95DD-490CF746108B";
-const char *idD2 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
+const char *moduleUrl = "3A1D904C-FA20-44AB-833C-08DC14DB6FCE";
 
-const char *idD5 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
-const char *idD6 = "A61D10C0-B931-4906-98F4-18F8FEF95EB1";
-const char *idD7 = "55E05E4F-575C-4656-8099-50ABCFEE7DE8";
+// const char *ND = "6EA49BEF-B141-4567-B43A-CE4FBF1AD348";
+// const char *DA = "CBBB90A0-14B2-47D1-9EE1-10934185B8AA";
+// const char *MUA = "6239FA8A-129B-46C1-A3CB-328AC318EA07";
+// const char *AD = "0AE1FF7F-450A-4A90-853E-3ED64F2899A4";
+
+const char *ND = "6ea49bef-b141-4567-b43a-ce4fbf1ad348";
+const char *DA = "cbbb90a0-14b2-47d1-9ee1-10934185b8aa";
+const char *MUA = "6239fa8a-129b-46c1-a3cb-328ac318ea07";
+const char *AD = "0ae1ff7f-450a-4a90-853e-3ed64f2899a4";
+
+const char *QUAT = "B66F2370-D5C4-4A61-84ED-DB9CEBE64E9D";
+const char *MAYBOM = "A61D10C0-B931-4906-98F4-18F8FEF95EB1";
+const char *DEN = "EA5D5EA9-C6F2-4692-AFC3-0344C8638D9E";
+
 const char *idD8 = "A529949C-252D-42A7-B7EA-4359DFC492B3";
 const char *Async = "async";
 
@@ -40,21 +49,17 @@ const uint8_t gateControl1 = D6;
 const uint8_t gateControl2 = D7;
 const uint8_t gateControl3 = D8;
 
-const uint8_t gateMeasure1 = D1;
-const uint8_t gateMeasure2 = D2;
+const uint8_t gateMeasure1 = D1; // mua
+const uint8_t gateMeasure2 = D2; // nhiet do do am
 const uint8_t gateMeasure3 = D3;
 const uint8_t gateMeasure4 = D4;
 
 // Initialize DHT to measure temperature and humidity
 DHT dht1(gateMeasure2, DHT11);
-DHT dht2(gateMeasure2, DHT11);
 
 // Initialize client and wifi
 WiFiClient espClient;
 PubSubClient client(espClient);
-
-// Started SoftwareSerial at RX and TX pin of ESP8266/NodeMCU
-SoftwareSerial SoftSerial(3, 1);
 
 /*---------Begin Working with EEPROM---------------*/
 
@@ -70,7 +75,7 @@ void reconnect()
     if (client.connect("ESP8266Client", mqttUser, mqttPassword))
     {
       // Đăng ký theo dõi các topic
-      std::string topic = std::string(systemUrl) + "/" + std::string(moduleUrl) + "/#";
+      std::string topic = std::string(moduleUrl) + "/#";
       client.subscribe(topic.c_str());
     }
     else
@@ -96,8 +101,8 @@ void readControl()
   Serial.println(gateControl2Status);
   String payloadControl1 = String(gateControl1Status);
   String payloadControl2 = String(gateControl2Status);
-  std::string topicControl1 = std::string(systemUrl) + "/w/" + std::string(idD6) + "/res";
-  std::string topicControl2 = std::string(systemUrl) + "/w/" + std::string(idD7) + "/res";
+  std::string topicControl1 = std::string(systemUrl) + "/w/" + std::string("") + "/res";
+  std::string topicControl2 = std::string(systemUrl) + "/w/" + std::string("") + "/res";
 
   // Send to broker
   client.publish(topicControl1.c_str(), payloadControl1.c_str());
@@ -119,18 +124,20 @@ void readDHT11()
 
   // Kích thước bộ nhớ được cấp phát cho đối tượng JSON (tùy thuộc vào dự án của bạn)
   const size_t capacity = JSON_OBJECT_SIZE(10);
-  DynamicJsonDocument ND_DA_D1(capacity);
-  ND_DA_D1["6EA49BEF-B141-4567-B43A-CE4FBF1AD348"] = String(t1);
-  ND_DA_D1["CBBB90A0-14B2-47D1-9EE1-10934185B8AA"] = String(h1);
-  ND_DA_D1["0AE1FF7F-450A-4A90-853E-3ED64F2899A4"] = String(amdat);
-  ND_DA_D1["6239FA8A-129B-46C1-A3CB-328AC318EA07"] = String(mua);
+  DynamicJsonDocument RES1(capacity);
+  DynamicJsonDocument RES2(capacity);
+  RES1[ND] = String(t1);
+  RES1[DA] = String(h1);
+  RES2[AD] = String(amdat);
+  RES2[MUA] = String(mua);
 
-  String jsonString;
-  serializeJson(ND_DA_D1, jsonString);
-  std::string topic = std::string(systemUrl) + "/r/";
-  // std::string topic = std::string(systemUrl) + "/r/" + std::string(idD1);
-  client.publish((topic + "/ND_DA").c_str(), jsonString.c_str());
-  SoftSerial.println(jsonString);
+  String jsonString1;
+  String jsonString2;
+  serializeJson(RES1, jsonString1);
+  serializeJson(RES2, jsonString2);
+  std::string topic = std::string(systemUrl) + "/r/" + std::string(moduleUrl);
+  client.publish((topic).c_str(), jsonString1.c_str());
+  client.publish((topic).c_str(), jsonString2.c_str());
 
   Serial.print("Published temperature: ");
   Serial.println(String(t1));
@@ -167,7 +174,7 @@ void ControlDevice(uint8_t gateControl, int mode)
 when receiving control from the topic and control payload*/
 void controlDeviceByTopic(String topicString, String payload)
 {
-  if (topicString == String(idD6))
+  if (topicString == String(MAYBOM))
   {
     if (payload == "1")
     {
@@ -182,7 +189,7 @@ void controlDeviceByTopic(String topicString, String payload)
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A61D10C0-B931-4906-98F4-18F8FEF95EB1/c", "c");
     }
   }
-  if (topicString == String(idD7))
+  if (topicString == String(QUAT))
   {
     if (payload == "1")
     {
@@ -197,7 +204,7 @@ void controlDeviceByTopic(String topicString, String payload)
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/55E05E4F-575C-4656-8099-50ABCFEE7DE8/c", "c");
     }
   }
-  if (topicString == String(idD8))
+  if (topicString == String(DEN))
   {
     if (payload == "1")
     {
@@ -233,9 +240,9 @@ void callback(char *topic, byte *payload, unsigned int length)
   splitTopic(topicString, topicArray, MAX_TOPICS);
 
   // từ topic và lệnh thực hiện bật/tắt
-  if (topicArray[2] == "w")
+  if (topicArray[1] == "w")
   {
-    controlDeviceByTopic(topicArray[3], payloadString);
+    controlDeviceByTopic(topicArray[2], payloadString);
   }
 }
 
@@ -290,7 +297,6 @@ void setup()
   digitalWrite(gateControl2, LOW);
 
   dht1.begin();
-  dht2.begin();
 }
 
 void loop()
