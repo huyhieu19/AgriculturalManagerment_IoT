@@ -6,13 +6,18 @@
 #include "DHT.h"
 #include <Wire.h>
 #include <EEPROM.h>
+#include <ArduinoJson.h>
+#include <SoftwareSerial.h>
 
 // Wi-Fi information
+// const char *ssid = "BKSTAR";
+// const char *password = "stemstar";
 const char *ssid = "FPT Telecom.2.4G";
 const char *password = "22121999";
 
 // MQTT broker information
-const char *mqttServer = "broker.emqx.io";
+// const char *mqttServer = "broker.emqx.io";
+const char *mqttServer = "broker.hivemq.com";
 const int mqttPort = 1883;
 const char *mqttUser = "your_MQTT_username";
 const char *mqttPassword = "your_MQTT_password";
@@ -20,12 +25,22 @@ const char *mqttPassword = "your_MQTT_password";
 // Thông tin Topic
 // --- Topic: SystemUrl/idgate/type/name
 const char *systemUrl = "3c531531-d5f5-4fe3-9954-5afd76ff2151";
-const char *moduleUrl = "66DB8F87-1A1E-4701-F2EE-08DBF79AE6C9";
-const char *idD1 = "664CB71A-D3F6-4FBF-95DD-490CF746108B";
-const char *idD2 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
-const char *idD5 = "91C90B9F-41E0-4777-8397-82BF44C9FA23";
-const char *idD6 = "5DF0F490-73B9-4757-8A01-789874D0F810";
-const char *idD7 = "55E05E4F-575C-4656-8099-50ABCFEE7DE8";
+const char *moduleUrl = "3A1D904C-FA20-44AB-833C-08DC14DB6FCE";
+
+// const char *ND = "6EA49BEF-B141-4567-B43A-CE4FBF1AD348";
+// const char *DA = "CBBB90A0-14B2-47D1-9EE1-10934185B8AA";
+// const char *MUA = "6239FA8A-129B-46C1-A3CB-328AC318EA07";
+// const char *AD = "0AE1FF7F-450A-4A90-853E-3ED64F2899A4";
+
+const char *ND = "6ea49bef-b141-4567-b43a-ce4fbf1ad348";
+const char *DA = "cbbb90a0-14b2-47d1-9ee1-10934185b8aa";
+const char *MUA = "6239fa8a-129b-46c1-a3cb-328ac318ea07";
+const char *AD = "0ae1ff7f-450a-4a90-853e-3ed64f2899a4";
+
+const char *QUAT = "B66F2370-D5C4-4A61-84ED-DB9CEBE64E9D";
+const char *MAYBOM = "A61D10C0-B931-4906-98F4-18F8FEF95EB1";
+const char *DEN = "EA5D5EA9-C6F2-4692-AFC3-0344C8638D9E";
+
 const char *idD8 = "A529949C-252D-42A7-B7EA-4359DFC492B3";
 const char *Async = "async";
 
@@ -34,65 +49,19 @@ const uint8_t gateControl1 = D6;
 const uint8_t gateControl2 = D7;
 const uint8_t gateControl3 = D8;
 
-const uint8_t gateMeasure1 = D1;
-const uint8_t gateMeasure2 = D2;
+const uint8_t gateMeasure1 = D1; // mua
+const uint8_t gateMeasure2 = D2; // nhiet do do am
 const uint8_t gateMeasure3 = D3;
 const uint8_t gateMeasure4 = D4;
 
-struct ThresholdValues
-{
-  float thresholdOpen = 0;
-  float thresholdClose = 0;
-};
-
-const int NumThresholds = 3; // Số lượng giá trị ngưỡng
-const int EEPROMAddress = 0;
-ThresholdValues thresholds[NumThresholds];
-
 // Initialize DHT to measure temperature and humidity
-DHT dht1(gateMeasure1, DHT11);
-DHT dht2(gateMeasure2, DHT11);
+DHT dht1(gateMeasure2, DHT11);
 
 // Initialize client and wifi
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 /*---------Begin Working with EEPROM---------------*/
-
-void readFromEEPROM()
-{
-  EEPROM.begin(sizeof(thresholds));
-  EEPROM.get(EEPROMAddress, thresholds);
-  EEPROM.end();
-}
-
-void updateThresholds(int index, float thresholdOpen, float thresholdClose)
-{
-  if (index >= 0 && index < NumThresholds)
-  {
-    thresholds[index].thresholdOpen = thresholdOpen;
-    thresholds[index].thresholdClose = thresholdClose;
-
-    EEPROM.begin(sizeof(thresholds));
-    EEPROM.put(EEPROMAddress, thresholds);
-    EEPROM.commit();
-    EEPROM.end();
-  }
-}
-
-void removeThreshold(int index)
-{
-  if (index >= 0 && index < NumThresholds)
-  {
-    thresholds[index].thresholdOpen = 0;
-    thresholds[index].thresholdClose = 0;
-
-    EEPROM.begin(sizeof(thresholds));
-    EEPROM.put(EEPROMAddress, thresholds);
-    EEPROM.commit();
-    EEPROM.end();
-  }
-}
 
 /*---------End Working with EEPROM---------------*/
 
@@ -106,7 +75,7 @@ void reconnect()
     if (client.connect("ESP8266Client", mqttUser, mqttPassword))
     {
       // Đăng ký theo dõi các topic
-      std::string topic = std::string(systemUrl) + "/" + std::string(moduleUrl) + "/#";
+      std::string topic = std::string(moduleUrl) + "/#";
       client.subscribe(topic.c_str());
     }
     else
@@ -132,8 +101,8 @@ void readControl()
   Serial.println(gateControl2Status);
   String payloadControl1 = String(gateControl1Status);
   String payloadControl2 = String(gateControl2Status);
-  std::string topicControl1 = std::string(systemUrl) + "/w/" + std::string(idD6) + "/res";
-  std::string topicControl2 = std::string(systemUrl) + "/w/" + std::string(idD7) + "/res";
+  std::string topicControl1 = std::string(systemUrl) + "/w/" + std::string("") + "/res";
+  std::string topicControl2 = std::string(systemUrl) + "/w/" + std::string("") + "/res";
 
   // Send to broker
   client.publish(topicControl1.c_str(), payloadControl1.c_str());
@@ -143,72 +112,37 @@ void readControl()
 // reading status gates measure
 void readDHT11()
 {
-  float h1 = dht1.readHumidity();
-  float t1 = dht1.readTemperature();
+  int h1 = round(dht1.readHumidity());
+  int t1 = round(dht1.readTemperature());
+  int mua = digitalRead(gateMeasure1);
+  int amdat = round(analogRead(A0));
 
-  String tempHumi = String(t1) + "/" + String(h1);
+  Serial.println(mua);
+  Serial.println(amdat);
+  Serial.println(t1);
+  Serial.println(h1);
 
-  std::string topic = std::string(systemUrl) + "/r/" + std::string(idD1);
-  client.publish((topic + "/ND_DA").c_str(), tempHumi.c_str());
+  // Kích thước bộ nhớ được cấp phát cho đối tượng JSON (tùy thuộc vào dự án của bạn)
+  const size_t capacity = JSON_OBJECT_SIZE(10);
+  DynamicJsonDocument RES1(capacity);
+  DynamicJsonDocument RES2(capacity);
+  RES1[ND] = String(t1);
+  RES1[DA] = String(h1);
+  RES2[AD] = String(amdat);
+  RES2[MUA] = String(mua);
+
+  String jsonString1;
+  String jsonString2;
+  serializeJson(RES1, jsonString1);
+  serializeJson(RES2, jsonString2);
+  std::string topic = std::string(systemUrl) + "/r/" + std::string(moduleUrl);
+  client.publish((topic).c_str(), jsonString1.c_str());
+  client.publish((topic).c_str(), jsonString2.c_str());
 
   Serial.print("Published temperature: ");
   Serial.println(String(t1));
   Serial.print("Published humidity: ");
   Serial.println(String(h1));
-
-  if (thresholds[0].thresholdOpen > thresholds[0].thresholdClose)
-  {
-    if (t1 > thresholds[0].thresholdOpen)
-    {
-      client.publish((topic + "/auto/ND/open").c_str(), String(t1).c_str());
-      Serial.print("Nhiet do -> open");
-    }
-    else if (t1 < thresholds[0].thresholdClose)
-    {
-      client.publish((topic + "/auto/ND/close").c_str(), String(t1).c_str());
-      Serial.print("Nhiet do -> close");
-    }
-  }
-  else
-  {
-    if (t1 < thresholds[0].thresholdOpen)
-    {
-      client.publish((topic + "/auto/DA/open").c_str(), String(t1).c_str());
-      Serial.print("Nhiet do -> open");
-    }
-    else if (t1 > thresholds[0].thresholdClose)
-    {
-      client.publish((topic + "/auto/DA/close").c_str(), String(t1).c_str());
-      Serial.print("Nhiet do -> close");
-    }
-  }
-
-  if (thresholds[1].thresholdOpen > thresholds[1].thresholdClose)
-  {
-    if (h1 > thresholds[1].thresholdOpen)
-    {
-      client.publish((topic + "/auto/ND/open").c_str(), String(h1).c_str());
-      Serial.print("Do am -> open");
-    }
-    else if (h1 < thresholds[1].thresholdClose)
-    {
-      client.publish((topic + "/auto/ND/close").c_str(), String(h1).c_str());
-      Serial.print("Do am -> close");
-    }
-  }
-  else
-  {
-    if (h1 < thresholds[1].thresholdOpen)
-    {
-      client.publish((topic + "/auto/DA/open").c_str(), String(h1).c_str());
-      Serial.print("Do am -> open");
-    }
-    else if (h1 > thresholds[1].thresholdClose)
-    {
-      client.publish((topic + "/auto/DA/close").c_str(), String(h1).c_str());
-      Serial.print("Do am -> close");
-    }
-  }
 }
 
 void splitTopic(String topic, String *topicArray, int arraySize)
@@ -240,33 +174,37 @@ void ControlDevice(uint8_t gateControl, int mode)
 when receiving control from the topic and control payload*/
 void controlDeviceByTopic(String topicString, String payload)
 {
-  if (topicString == String(idD6))
+  if (topicString == String(MAYBOM))
   {
     if (payload == "1")
     {
       ControlDevice(gateControl1, HIGH);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/5DF0F490-73B9-4757-8A01-789874D0F810/c", "c");
+      Serial.print("Open 0");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A61D10C0-B931-4906-98F4-18F8FEF95EB1/c", "c");
     }
     else if (payload == "0")
     {
       ControlDevice(gateControl1, LOW);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/5DF0F490-73B9-4757-8A01-789874D0F810/c", "c");
+      Serial.print("Close 0");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A61D10C0-B931-4906-98F4-18F8FEF95EB1/c", "c");
     }
   }
-  if (topicString == String(idD7))
+  if (topicString == String(QUAT))
   {
     if (payload == "1")
     {
       digitalWrite(gateControl2, HIGH);
+      Serial.print("Open 1");
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/55E05E4F-575C-4656-8099-50ABCFEE7DE8/c", "c");
     }
     else if (payload == "0")
     {
       ControlDevice(gateControl2, LOW);
+      Serial.print("Close 1");
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/55E05E4F-575C-4656-8099-50ABCFEE7DE8/c", "c");
     }
   }
-  if (topicString == String(idD8))
+  if (topicString == String(DEN))
   {
     if (payload == "1")
     {
@@ -302,29 +240,16 @@ void callback(char *topic, byte *payload, unsigned int length)
   splitTopic(topicString, topicArray, MAX_TOPICS);
 
   // từ topic và lệnh thực hiện bật/tắt
-  if (topicArray[2] == "w")
+  if (topicArray[1] == "w")
   {
-    controlDeviceByTopic(topicArray[3], payloadString);
-  }
-
-  // tách payload
-  String payloadArray[MAX_TOPICS];
-  splitTopic(payloadString, payloadArray, MAX_TOPICS);
-
-  // Topic: sys/module/idgate/type/
-  if (topicArray[3] == "write")
-  {
-    updateThresholds(std::stoi(payloadArray[0].c_str()), std::atof(payloadArray[1].c_str()), std::atof(payloadArray[2].c_str()));
+    controlDeviceByTopic(topicArray[2], payloadString);
   }
 }
 
 // setup method - (main method)
 void setup()
 {
-  Serial.begin(115200);
-
-  // Reading EEPROM
-  readFromEEPROM();
+  Serial.begin(9600);
 
   // Thiết lập kết nối Wi-Fi
   WiFi.begin(ssid, password);
@@ -348,7 +273,7 @@ void setup()
       Serial.println("Connected to MQTT broker");
 
       // Đăng ký theo dõi các topic
-      std::string topic = std::string(systemUrl) + "/" + std::string(moduleUrl) + "/#";
+      std::string topic = std::string(moduleUrl) + "/#";
       client.subscribe(topic.c_str());
     }
     else
@@ -372,45 +297,27 @@ void setup()
   digitalWrite(gateControl2, LOW);
 
   dht1.begin();
-  dht2.begin();
 }
 
-// loop method - (main method)
 void loop()
 {
   static unsigned long lastLoop1Time = 0;   // Lưu thời điểm thực hiện vòng lặp 1
   static unsigned long lastLoop2Time = 0;   // Lưu thời điểm thực hiện vòng lặp 2
   const unsigned long loop1Interval = 5000; // Thời gian giữa các lần chạy vòng lặp 1 (5s)
   const unsigned long loop2Interval = 100;  // Thời gian giữa các lần chạy vòng lặp 2 (0.1s)
-
-  // Vòng lặp 1 (chạy mỗi 5 giây)
   if (millis() - lastLoop1Time >= loop1Interval)
   {
-    // Thực hiện các hành động của vòng lặp 1
-    // ...
-    // kết nối broker
     if (!client.connected())
     {
       reconnect();
     }
-    // gửi tín hiệu
-    readControl();
+    // readControl();
     readDHT11();
-    Serial.println(String(thresholds[0].thresholdClose) + "/" + String(thresholds[0].thresholdOpen));
-    // delay(7000);
-    //  Cập nhật thời điểm thực hiện vòng lặp 1
     lastLoop1Time = millis();
   }
-
-  // Vòng lặp 2 (chạy mỗi 0.1 giây)
   if (millis() - lastLoop2Time >= loop2Interval)
   {
-    // Thực hiện các hành động của vòng lặp 2
-    // ...
-
     client.loop();
-
-    // Cập nhật thời điểm thực hiện vòng lặp 2
     lastLoop2Time = millis();
   }
 }
