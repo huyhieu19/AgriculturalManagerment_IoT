@@ -55,7 +55,7 @@ const uint8_t gateMeasure3 = D3;
 const uint8_t gateMeasure4 = D4;
 
 // Initialize DHT to measure temperature and humidity
-DHT dht1(gateMeasure2, DHT11);
+DHT dht1(gateMeasure1, DHT11);
 
 // Initialize client and wifi
 WiFiClient espClient;
@@ -114,11 +114,9 @@ void readDHT11()
 {
   int h1 = round(dht1.readHumidity());
   int t1 = round(dht1.readTemperature());
-  int mua = digitalRead(gateMeasure1);
-  int amdat = round(analogRead(A0));
+  int mua = round(analogRead(A0));
 
   Serial.println(mua);
-  Serial.println(amdat);
   Serial.println(t1);
   Serial.println(h1);
 
@@ -128,7 +126,6 @@ void readDHT11()
   DynamicJsonDocument RES2(capacity);
   RES1[ND] = String(t1);
   RES1[DA] = String(h1);
-  RES2[AD] = String(amdat);
   RES2[MUA] = String(mua);
 
   String jsonString1;
