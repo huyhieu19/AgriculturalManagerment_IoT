@@ -114,10 +114,8 @@ void readDHT11()
 {
   int h1 = round(dht1.readHumidity());
   int t1 = round(dht1.readTemperature());
-  int mua = digitalRead(gateMeasure1);
   int amdat = round(analogRead(A0));
 
-  Serial.println(mua);
   Serial.println(amdat);
   Serial.println(t1);
   Serial.println(h1);
@@ -128,16 +126,12 @@ void readDHT11()
   DynamicJsonDocument RES2(capacity);
   RES1[ND] = String(t1);
   RES1[DA] = String(h1);
-  RES2[AD] = String(amdat);
-  RES2[MUA] = String(mua);
+  RES1[AD] = String(amdat);
 
   String jsonString1;
-  String jsonString2;
   serializeJson(RES1, jsonString1);
-  serializeJson(RES2, jsonString2);
   std::string topic = std::string(systemUrl) + "/r/" + std::string(moduleUrl);
   client.publish((topic).c_str(), jsonString1.c_str());
-  client.publish((topic).c_str(), jsonString2.c_str());
 
   Serial.print("Published temperature: ");
   Serial.println(String(t1));
