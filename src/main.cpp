@@ -189,13 +189,13 @@ void controlDeviceByTopic(String topicString, String payload)
     {
       digitalWrite(gateControl2, HIGH);
       Serial.print("Open 1");
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/55E05E4F-575C-4656-8099-50ABCFEE7DE8/c", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/B66F2370-D5C4-4A61-84ED-DB9CEBE64E9D/c", "c");
     }
     else if (payload == "0")
     {
       ControlDevice(gateControl2, LOW);
       Serial.print("Close 1");
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/55E05E4F-575C-4656-8099-50ABCFEE7DE8/c", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/B66F2370-D5C4-4A61-84ED-DB9CEBE64E9D/c", "c");
     }
   }
   if (topicString == String(DEN))
@@ -203,12 +203,12 @@ void controlDeviceByTopic(String topicString, String payload)
     if (payload == "1")
     {
       digitalWrite(gateControl3, HIGH);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A529949C-252D-42A7-B7EA-4359DFC492B3/c", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/EA5D5EA9-C6F2-4692-AFC3-0344C8638D9E/c", "c");
     }
     else if (payload == "0")
     {
       ControlDevice(gateControl3, LOW);
-      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A529949C-252D-42A7-B7EA-4359DFC492B3/c", "c");
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/EA5D5EA9-C6F2-4692-AFC3-0344C8638D9E/c", "c");
     }
   }
 }
