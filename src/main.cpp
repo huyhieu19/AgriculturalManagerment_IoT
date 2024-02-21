@@ -171,6 +171,26 @@ void ControlDevice(uint8_t gateControl, int mode)
   digitalWrite(gateControl, mode);
 }
 
+// void ControlBarie(int a)
+// {
+//   int pos = 0;
+//   if (a == 1)
+//   {
+//     for (pos = 0; pos < 95; pos += 1)
+//     {
+//       myservo.write(pos);
+//       delay(15);
+//     }
+//   }
+//   if (a == 0)
+//   {
+//     for (pos = 95; pos >= 1; pos -= 1)
+//     {
+//       myservo.write(pos);
+//       delay(15);
+//     }
+//   }
+// }
 /*This function is used to control the state of pinmodes
 when receiving control from the topic and control payload*/
 void controlDeviceByTopic(String topicString, String payload)
@@ -257,8 +277,13 @@ void setup()
   }
 
   pinMode(gateControlD3, OUTPUT);
-  pinMode(gateMeasure1, INPUT);
   digitalWrite(gateControlD3, LOW);
+
+  pinMode(gateMeasure1, INPUT);
+
+  // pinMode(gateControlD3, OUTPUT);
+  // myservo.attach(gateControlD3);
+  // myservo.write(0);
 
   dht1.begin();
 }
