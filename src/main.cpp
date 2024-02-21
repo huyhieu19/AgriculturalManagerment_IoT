@@ -122,7 +122,14 @@ void readDHT11()
   int h1 = round(dht1.readHumidity());
   int t1 = round(dht1.readTemperature());
   int mua = round(analogRead(A0));
-
+  if (mua < 800)
+  {
+    mua = 1;
+  }
+  else if (mua > 800)
+  {
+    mua = 0;
+  }
   Serial.println(mua);
   Serial.println(t1);
   Serial.println(h1);
