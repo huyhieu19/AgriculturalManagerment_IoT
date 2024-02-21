@@ -76,13 +76,6 @@ void reconnect()
   {
     Serial.println("Attempting MQTT connection...");
 
-    if (WiFi.status() != WL_CONNECTED)
-    {
-      delay(1000);
-      Serial.println("Connecting to WiFi...");
-      WiFi.begin(ssid, password);
-    }
-
     if (client.connect("ESP8266Client", mqttUser, mqttPassword))
     {
       // Đăng ký theo dõi các topic
@@ -235,7 +228,6 @@ void setup()
   {
     delay(1000);
     Serial.println("Connecting to WiFi...");
-    WiFi.begin(ssid, password);
   }
   Serial.println("Connected to WiFi");
 
