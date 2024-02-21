@@ -146,8 +146,7 @@ void readDHT11()
   int h1 = round(dht1.readHumidity());
   int t1 = round(dht1.readTemperature());
   int amdat = round(analogRead(A0));
-
-  amdat = map(amdat, 0, 1023, 0, 100);
+  amdat = map(amdat, 660, 350, 0, 100);
 
   Serial.println("AD" + amdat);
   Serial.println("ND" + t1);
@@ -292,7 +291,6 @@ void setup()
   {
     delay(1000);
     Serial.println("Connecting to WiFi...");
-    WiFi.begin(ssid, password);
   }
   Serial.println("Connected to WiFi");
 
