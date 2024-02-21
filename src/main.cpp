@@ -1,3 +1,27 @@
+/*
+Config:
++++ Board 1:
+
+Id: 3A1D904C-FA20-44AB-833C-08DC14DB6FCE
+
++ Nhiệt độ
+Id: 6ea49bef-b141-4567-b43a-ce4fbf1ad348
+Gate: D2
+
++ Độ ẩm
+Id: cbbb90a0-14b2-47d1-9ee1-10934185b8aa
+Gate: D2
+
++ Ẩm đất
+Id: 0ae1ff7f-450a-4a90-853e-3ed64f2899a4
+Gate: A0
+
++ D5: B66F2370-D5C4-4A61-84ED-DB9CEBE64E9D (quạt)
++ D6: A61D10C0-B931-4906-98F4-18F8FEF95EB1 (Máy bơm)
++ D4: EA5D5EA9-C6F2-4692-AFC3-0344C8638D9E (Đèn)
++ D7: A529949C-252D-42A7-B7EA-4359DFC492B3
+*/
+
 #include <Arduino.h>
 #include <Adafruit_Sensor.h>
 #include <ESP8266WiFi.h>
@@ -10,8 +34,8 @@
 #include <SoftwareSerial.h>
 
 // Wi-Fi information
-// const char *ssid = "BKSTAR";
-// const char *password = "stemstar";
+// const char *ssid = "HuyHieu";
+// const char *password = "20192855";
 const char *ssid = "FPT Telecom.2.4G";
 const char *password = "22121999";
 
@@ -34,25 +58,23 @@ const char *moduleUrl = "3A1D904C-FA20-44AB-833C-08DC14DB6FCE";
 
 const char *ND = "6ea49bef-b141-4567-b43a-ce4fbf1ad348";
 const char *DA = "cbbb90a0-14b2-47d1-9ee1-10934185b8aa";
-const char *MUA = "6239fa8a-129b-46c1-a3cb-328ac318ea07";
 const char *AD = "0ae1ff7f-450a-4a90-853e-3ed64f2899a4";
 
 const char *QUAT = "B66F2370-D5C4-4A61-84ED-DB9CEBE64E9D";
 const char *MAYBOM = "A61D10C0-B931-4906-98F4-18F8FEF95EB1";
 const char *DEN = "EA5D5EA9-C6F2-4692-AFC3-0344C8638D9E";
 
-const char *idD8 = "A529949C-252D-42A7-B7EA-4359DFC492B3";
+const char *idD5 = "A529949C-252D-42A7-B7EA-4359DFC492B3";
 const char *Async = "async";
 
 // GPIO define gate name
-const uint8_t gateControl1 = D6;
-const uint8_t gateControl2 = D7;
-const uint8_t gateControl3 = D8;
+const uint8_t gateControlD6 = D6;
+const uint8_t gateControlD7 = D7;
+const uint8_t gateControlD8 = D8;
+const uint8_t gateControlD5 = D5;
 
-const uint8_t gateMeasure1 = D1; // mua
 const uint8_t gateMeasure2 = D2; // nhiet do do am
 const uint8_t gateMeasure3 = D3;
-const uint8_t gateMeasure4 = D4;
 
 // Initialize DHT to measure temperature and humidity
 DHT dht1(gateMeasure2, DHT11);
@@ -71,6 +93,15 @@ void reconnect()
   while (!client.connected())
   {
     Serial.println("Attempting MQTT connection...");
+
+    // Thiết lập kết nối Wi-Fi
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      delay(1000);
+      Serial.println("Connecting to WiFi...");
+      WiFi.begin(ssid, password);
+    }
+    Serial.println("Connected to WiFi");
 
     if (client.connect("ESP8266Client", mqttUser, mqttPassword))
     {
@@ -92,8 +123,8 @@ void reconnect()
 void readControl()
 {
   // Read the status of the GPIOs
-  int gateControl1Status = digitalRead(gateControl1);
-  int gateControl2Status = digitalRead(gateControl2);
+  int gateControl1Status = digitalRead(gateControlD6);
+  int gateControl2Status = digitalRead(gateControlD7);
   // Print
   Serial.print("GPIO 6 :");
   Serial.println(gateControl1Status);
@@ -116,14 +147,14 @@ void readDHT11()
   int t1 = round(dht1.readTemperature());
   int amdat = round(analogRead(A0));
 
-  Serial.println(amdat);
-  Serial.println(t1);
-  Serial.println(h1);
+  Serial.println("AD" + amdat);
+  Serial.println("ND" + t1);
+  Serial.println("DA" + h1);
 
   // Kích thước bộ nhớ được cấp phát cho đối tượng JSON (tùy thuộc vào dự án của bạn)
   const size_t capacity = JSON_OBJECT_SIZE(10);
   DynamicJsonDocument RES1(capacity);
-  DynamicJsonDocument RES2(capacity);
+
   RES1[ND] = String(t1);
   RES1[DA] = String(h1);
   RES1[AD] = String(amdat);
@@ -132,11 +163,6 @@ void readDHT11()
   serializeJson(RES1, jsonString1);
   std::string topic = std::string(systemUrl) + "/r/" + std::string(moduleUrl);
   client.publish((topic).c_str(), jsonString1.c_str());
-
-  Serial.print("Published temperature: ");
-  Serial.println(String(t1));
-  Serial.print("Published humidity: ");
-  Serial.println(String(h1));
 }
 
 void splitTopic(String topic, String *topicArray, int arraySize)
@@ -172,13 +198,13 @@ void controlDeviceByTopic(String topicString, String payload)
   {
     if (payload == "1")
     {
-      ControlDevice(gateControl1, HIGH);
+      ControlDevice(gateControlD6, HIGH);
       Serial.print("Open 0");
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A61D10C0-B931-4906-98F4-18F8FEF95EB1/c", "c");
     }
     else if (payload == "0")
     {
-      ControlDevice(gateControl1, LOW);
+      ControlDevice(gateControlD6, LOW);
       Serial.print("Close 0");
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A61D10C0-B931-4906-98F4-18F8FEF95EB1/c", "c");
     }
@@ -187,13 +213,13 @@ void controlDeviceByTopic(String topicString, String payload)
   {
     if (payload == "1")
     {
-      digitalWrite(gateControl2, HIGH);
+      digitalWrite(gateControlD7, HIGH);
       Serial.print("Open 1");
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/B66F2370-D5C4-4A61-84ED-DB9CEBE64E9D/c", "c");
     }
     else if (payload == "0")
     {
-      ControlDevice(gateControl2, LOW);
+      ControlDevice(gateControlD7, LOW);
       Serial.print("Close 1");
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/B66F2370-D5C4-4A61-84ED-DB9CEBE64E9D/c", "c");
     }
@@ -202,13 +228,26 @@ void controlDeviceByTopic(String topicString, String payload)
   {
     if (payload == "1")
     {
-      digitalWrite(gateControl3, HIGH);
+      digitalWrite(gateControlD8, HIGH);
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/EA5D5EA9-C6F2-4692-AFC3-0344C8638D9E/c", "c");
     }
     else if (payload == "0")
     {
-      ControlDevice(gateControl3, LOW);
+      ControlDevice(gateControlD8, LOW);
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/EA5D5EA9-C6F2-4692-AFC3-0344C8638D9E/c", "c");
+    }
+  }
+  if (topicString == String(idD5))
+  {
+    if (payload == "1")
+    {
+      digitalWrite(gateControlD5, HIGH);
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A529949C-252D-42A7-B7EA-4359DFC492B3/c", "c");
+    }
+    else if (payload == "0")
+    {
+      ControlDevice(gateControlD5, LOW);
+      client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A529949C-252D-42A7-B7EA-4359DFC492B3/c", "c");
     }
   }
 }
@@ -251,6 +290,7 @@ void setup()
   {
     delay(1000);
     Serial.println("Connecting to WiFi...");
+    WiFi.begin(ssid, password);
   }
   Serial.println("Connected to WiFi");
 
@@ -279,16 +319,18 @@ void setup()
     }
   }
 
-  pinMode(gateControl1, OUTPUT);
-  pinMode(gateControl2, OUTPUT);
-  pinMode(gateControl3, OUTPUT);
-  pinMode(gateMeasure1, INPUT);
+  pinMode(gateControlD6, OUTPUT);
+  pinMode(gateControlD7, OUTPUT);
+  pinMode(gateControlD8, OUTPUT);
+  pinMode(gateControlD5, OUTPUT);
+
   pinMode(gateMeasure2, INPUT);
   pinMode(gateMeasure3, INPUT);
-  pinMode(gateMeasure4, INPUT);
 
-  digitalWrite(gateControl1, LOW);
-  digitalWrite(gateControl2, LOW);
+  digitalWrite(gateControlD6, LOW);
+  digitalWrite(gateControlD7, LOW);
+  digitalWrite(gateControlD8, LOW);
+  digitalWrite(gateControlD5, LOW);
 
   dht1.begin();
 }
