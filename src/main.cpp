@@ -147,6 +147,8 @@ void readDHT11()
   int t1 = round(dht1.readTemperature());
   int amdat = round(analogRead(A0));
 
+  amdat = map(amdat, 0, 1023, 0, 100);
+
   Serial.println("AD" + amdat);
   Serial.println("ND" + t1);
   Serial.println("DA" + h1);
