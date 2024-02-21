@@ -1,7 +1,12 @@
 /*
+Board2: 1642BCDF-FEDC-4706-820A-20AA0AA4DF6C
 ND-DA: D1, (đỏ nguôn, cam tín hiệu)
+ND: 65bbe9da-7163-4689-b20b-9e21dabd4860
+DA: 720b8be4-7064-43b9-8c6a-106f0accbfaa
 Mưa: A0 (tím tín hiệu, nguồn xanh lá)
-Relay: D3
+Mua: ddca1d26-577d-433c-bcf9-03c83cb18ac1
+Relay: D3 : ECE53418-503E-4CD3-9BA5-96A0FFFE65B6
+
 */
 
 #include <Arduino.h>
@@ -16,6 +21,8 @@ Relay: D3
 #include <SoftwareSerial.h>
 
 // Wi-Fi information
+// const char *ssid = "HuyHieu";
+// const char *password = "20192855";
 const char *ssid = "FPT Telecom.2.4G";
 const char *password = "22121999";
 
@@ -49,7 +56,7 @@ const char *Async = "async";
 
 const uint8_t gateMeasure1 = D1; // nhiet do do am
 
-const uint8_t gateControl1 = D3;
+const uint8_t gateControlD3 = D3;
 
 // Initialize DHT to measure temperature and humidity
 DHT dht1(gateMeasure1, DHT11);
@@ -68,6 +75,13 @@ void reconnect()
   while (!client.connected())
   {
     Serial.println("Attempting MQTT connection...");
+
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      delay(1000);
+      Serial.println("Connecting to WiFi...");
+      WiFi.begin(ssid, password);
+    }
 
     if (client.connect("ESP8266Client", mqttUser, mqttPassword))
     {
@@ -89,7 +103,7 @@ void reconnect()
 void readControl()
 {
   // Read the status of the GPIOs
-  int gateControl1Status = digitalRead(gateControl1);
+  int gateControl1Status = digitalRead(gateControlD3);
   // Print
   Serial.print("GPIO 6 :");
   Serial.println(gateControl1Status);
@@ -165,12 +179,12 @@ void controlDeviceByTopic(String topicString, String payload)
   {
     if (payload == "1")
     {
-      digitalWrite(gateControl1, HIGH);
+      digitalWrite(gateControlD3, HIGH);
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/ECE53418-503E-4CD3-9BA5-96A0FFFE65B6/c", "c");
     }
     else if (payload == "0")
     {
-      ControlDevice(gateControl1, LOW);
+      digitalWrite(gateControlD3, LOW);
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/ECE53418-503E-4CD3-9BA5-96A0FFFE65B6/c", "c");
     }
   }
@@ -214,6 +228,7 @@ void setup()
   {
     delay(1000);
     Serial.println("Connecting to WiFi...");
+    WiFi.begin(ssid, password);
   }
   Serial.println("Connected to WiFi");
 
@@ -242,9 +257,9 @@ void setup()
     }
   }
 
-  pinMode(gateControl1, OUTPUT);
+  pinMode(gateControlD3, OUTPUT);
   pinMode(gateMeasure1, INPUT);
-  digitalWrite(gateControl1, LOW);
+  digitalWrite(gateControlD3, LOW);
 
   dht1.begin();
 }
