@@ -21,10 +21,10 @@ Relay: D3 : ECE53418-503E-4CD3-9BA5-96A0FFFE65B6
 #include <SoftwareSerial.h>
 
 // Wi-Fi information
-// const char *ssid = "HuyHieu";
-// const char *password = "20192855";
-const char *ssid = "FPT Telecom.2.4G";
-const char *password = "22121999";
+const char *ssid = "HuyHieu";
+const char *password = "20192855";
+// const char *ssid = "FPT Telecom.2.4G";
+// const char *password = "22121999";
 
 // MQTT broker information
 // const char *mqttServer = "broker.emqx.io";
