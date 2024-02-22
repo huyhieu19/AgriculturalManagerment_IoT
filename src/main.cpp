@@ -34,10 +34,10 @@ Gate: A0
 #include <SoftwareSerial.h>
 
 // Wi-Fi information
-// const char *ssid = "HuyHieu";
-// const char *password = "20192855";
-const char *ssid = "FPT Telecom.2.4G";
-const char *password = "22121999";
+const char *ssid = "HuyHieu";
+const char *password = "20192855";
+// const char *ssid = "FPT Telecom.2.4G";
+// const char *password = "22121999";
 
 // MQTT broker information
 // const char *mqttServer = "broker.emqx.io";
@@ -86,38 +86,6 @@ PubSubClient client(espClient);
 /*---------Begin Working with EEPROM---------------*/
 
 /*---------End Working with EEPROM---------------*/
-
-// The function tries to reconnect MQTT when the connection is lost
-void reconnect()
-{
-  while (!client.connected())
-  {
-    Serial.println("Attempting MQTT connection...");
-
-    // Thiết lập kết nối Wi-Fi
-    while (WiFi.status() != WL_CONNECTED)
-    {
-      delay(1000);
-      Serial.println("Connecting to WiFi...");
-      WiFi.begin(ssid, password);
-    }
-    Serial.println("Connected to WiFi");
-
-    if (client.connect("ESP8266Client", mqttUser, mqttPassword))
-    {
-      // Đăng ký theo dõi các topic
-      std::string topic = std::string(moduleUrl) + "/#";
-      client.subscribe(topic.c_str());
-    }
-    else
-    {
-      Serial.print("Failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" Retrying in 5 seconds...");
-      delay(1000);
-    }
-  }
-}
 
 // reading status gates control
 void readControl()
@@ -251,6 +219,7 @@ void controlDeviceByTopic(String topicString, String payload)
       client.publish("3c531531-d5f5-4fe3-9954-5afd76ff2151/w/A529949C-252D-42A7-B7EA-4359DFC492B3/c", "c");
     }
   }
+  Serial.println("Dieu khien: ");
 }
 
 // Callback method
@@ -279,6 +248,63 @@ void callback(char *topic, byte *payload, unsigned int length)
     controlDeviceByTopic(topicArray[2], payloadString);
   }
 }
+// The function tries to reconnect MQTT when the connection is lost
+void reconnect()
+{
+  while (!client.connected())
+  {
+    Serial.println("Attempting MQTT connection...");
+
+    // Thiết lập kết nối Wi-Fi
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      delay(1000);
+      Serial.println("Connecting to WiFi...");
+      WiFi.begin(ssid, password);
+    }
+
+    Serial.println("Connected to WiFi");
+
+    // Thiết lập kết nối MQTT
+    client.setServer(mqttServer, mqttPort);
+    client.setCallback(callback);
+
+    // while (!client.connected())
+    // {
+    //   Serial.println("Connecting to MQTT broker...");
+
+    //   if (client.connect("ESP8266Clien123232gfhds"))
+    //   {
+    //     Serial.println("Connected to MQTT broker");
+
+    //     // Đăng ký theo dõi các topic
+    //     std::string topic = std::string(moduleUrl) + "/#";
+    //     client.subscribe(topic.c_str());
+    //   }
+    //   else
+    //   {
+    //     Serial.print("Failed, rc=");
+    //     Serial.print(client.state());
+    //     Serial.println(" Retrying in 5 seconds...");
+    //     delay(1000);
+    //   }
+    // }
+
+    if (client.connect("ESP8266Client4q2341234", mqttUser, mqttPassword))
+    {
+      // Đăng ký theo dõi các topic
+      std::string topic = std::string(moduleUrl) + "/#";
+      client.subscribe(topic.c_str());
+    }
+    else
+    {
+      Serial.print("Failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" Retrying in 5 seconds...");
+      delay(1000);
+    }
+  }
+}
 
 // setup method - (main method)
 void setup()
@@ -302,7 +328,7 @@ void setup()
   {
     Serial.println("Connecting to MQTT broker...");
 
-    if (client.connect("ESP8266Clien123232gfhds"))
+    if (client.connect("ESP8266Clien123232gfhds123"))
     {
       Serial.println("Connected to MQTT broker");
 
@@ -345,7 +371,7 @@ void loop()
   {
     if (!client.connected())
     {
-      reconnect();
+      setup();
     }
     // readControl();
     readDHT11();
